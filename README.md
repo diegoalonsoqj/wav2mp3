@@ -3,12 +3,12 @@ Script simple en bash para convertir audios de formato WAV a audios en MP3.
 
   Requerimientos:
 
-1.- El escribe uso como nucleo el software lame para conversion de formato en archivos de audio, de no tenerlo instalado bastaria con ejecutar:
+1.- El script usa como nucleo el software lame para conversion de formato en archivos de audio, de no tenerlo instalado bastaria con ejecutar:
 
       yum install -y lame
       apt install -y lame
       
-   * Elegir uno u otro gestor de paquetes dependiento de las distribucion de su Sistema Operativo.
+   * Elegir uno u otro gestor de paquetes dependiendo de la distribucion de su Sistema Operativo.
 
 
   Guia de uso:
@@ -18,7 +18,7 @@ Script simple en bash para convertir audios de formato WAV a audios en MP3.
 
     chmod +x wav2mp3.sh
     
-3.- Ejecutar el archivo:
+3.- Ejecutar el archivo con alguna de las siguientes maneras:
 
     ./wav2mp3.sh
     bash wav2mp3.sh
