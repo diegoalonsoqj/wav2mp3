@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Script by Diego Quispe - da@diegoquispe.com
+# Lima - Peru
+
 mkdir formato_mp3
 
 DirRaiz=$(pwd)
