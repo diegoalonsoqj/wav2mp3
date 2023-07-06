@@ -3,48 +3,89 @@
 # Script by Diego Quispe - da@diegoquispe.com
 # Lima - Peru
 
-if ! command -v lame &> /dev/null
-then
-    echo "lame no está instalado. Por favor, instálalo para continuar."
-    exit
-fi
+LOG_FILE="conversion.log"
 
-if [ -d "formato_mp3" ]; then
-  echo "El directorio 'formato_mp3' ya existe. ¿Quieres eliminarlo? (S/N)"
-  read respuesta
-  if [[ $respuesta =~ ^[Ss]$ ]]
+check_lame_installed() {
+  if ! command -v lame &> /dev/null
   then
-      rm -rf formato_mp3
-  else
+      echo "lame no está instalado. Por favor, instálalo para continuar." | tee -a $LOG_FILE
       exit 1
   fi
+}
+
+handle_existing_dir() {
+  if [ -d "formato_mp3" ]; then
+    echo "El directorio 'formato_mp3' ya existe. ¿Quieres eliminarlo? (S/N)"
+    read respuesta
+    if [[ $respuesta =~ ^[Ss]$ ]]
+    then
+        rm -rf formato_mp3
+    else
+        exit 1
+    fi
+  fi
+  mkdir formato_mp3
+}
+
+count_files() {
+  local type=$1
+  find . -maxdepth 1 -type f -iname "*.${type}" | wc -l
+}
+
+convert_files() {
+  local total_files=$(count_files wav)
+  local count=0
+  for i in *.wav
+  do
+      echo -n "Procesando archivo ${i}... " | tee -a $LOG_FILE
+      if lame -b 16 -m m -q 9 --resample 8 "$i" "formato_mp3/${i/.wav/.mp3}"
+      then
+          echo "OK" | tee -a $LOG_FILE
+          let count++
+      else
+          echo "Error al convertir archivo ${i}" | tee -a $LOG_FILE
+      fi
+      echo "Progreso: ${count}/${total_files}" | tee -a $LOG_FILE
+  done
+}
+
+report() {
+  local type=$1
+  echo "" | tee -a $LOG_FILE
+  echo "ARCHIVOS ${type^^}: " | tee -a $LOG_FILE
+  echo "- Cantidad total de audios ${type^^}: $(count_files ${type})" | tee -a $LOG_FILE
+  echo "- Peso de los audios ${type^^}: $(du -hs)" | tee -a $LOG_FILE
+}
+
+# Remove log file if exists
+if [ -f "$LOG_FILE" ] ; then
+    rm "$LOG_FILE"
 fi
 
-mkdir formato_mp3
+check_lame_installed
+handle_existing_dir
 
-DirRaiz=$(pwd)
 timeInit=$(date +"%d/%m/%Y %T")
 
-let TotalAudios=$(find . -maxdepth 1 -type f -iname "*.wav" | wc -l)
+convert_files
 
-for i in *.wav
-do
-    echo PROCESANDO $i
-    lame -b 16 -m m -q 9 --resample 8 "$i" "formato_mp3/${i/.wav/.mp3}"
-done
+timeFin=$(date +"%d/%m/%Y %T")
 
-PesoWav=$(du -hs)
-
-let TotalWav=$(find . -maxdepth 1 -type f -iname "*.wav" | wc -l)
-echo ""
-echo "ARCHIVOS WAV: "
-echo "- Cantidad total de audios WAV: " $TotalWav
-echo "- Peso de los audios WAV: " $PesoWav
-
-echo ""
 cd formato_mp3
 
-PesoMp3=$(du -hs)
+report wav
+report mp3
 
-let TotalMp3=$(find . -maxdepth 1 -type f -iname "*.mp3" | wc -l)
-echo "
+let difWavMp3=$(count_files wav)-$(count_files mp3)
+
+if [ $difWavMp3 -ne 0 ]; then
+  echo "" | tee -a $LOG_FILE
+  echo " ERROR - Existe una diferencia de cantidades" | tee -a $LOG_FILE
+  echo "- Diferencia de cantidades de archivos entre WAV y MP3: " $difWavMp3 | tee -a $LOG_FILE
+else
+  echo "" | tee -a $LOG_FILE
+  echo " CONVERSION DE AUDIOS EXITOSA !" | tee -a $LOG_FILE
+  echo "- Fecha y Hora de Inicio: " $timeInit | tee -a $LOG_FILE
+  echo "- Fecha y Hora de Fin: " $timeFin | tee -a $LOG_FILE
+  echo "- Diferencia de cantidades de archivos entre WAV y MP3: " $difWavMp3 | tee -a $LOG_FILE
+fi
